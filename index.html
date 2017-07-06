@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steemit Reward Bot</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+  <div class="container">
+    <div class="row text-center">
+      <h1>Steemit Reward Bot</h1>
+    </div>
+    <div class="row">
+      <div class="col-sm-12 col-md-6">
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Account</h3>
+          </div>
+          <div class="panel-body">
+            <form>
+              <div class="form-group">
+                <label for="account">Your Steemit account (without '@')</label>
+                <div class="input-group">
+                  <span class="input-group-addon" id="sizing-addon2">@</span>
+                  <input type="text" class="form-control" id="account" placeholder="account" aria-describedby="sizing-addon2">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="posting-key">Your private posting key</label>
+                <input type="password" class="form-control" id="posting-key" placeholder="private posting key">
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="panel panel-success">
+          <div class="panel-heading">
+            <h3 class="panel-title">Welcome</h3>
+          </div>
+          <div class="panel-body">
+            <p>I developed this bot inspired by <a href="https://steemit.com/@klye" target="_blank">@klye</a>'s <a href="https://steemit.com/steemdev/@klye/rewardo-steem-bot-v0-0-1-open-source-nodejs-auto-reward-claim-script" target="_blank">work</a>.</p>
+            <p>This is a pure client-side javascript bot working on your browser, so you don't need to worry about exposing your private posting key to anyone.</p>
+            <p>It will check your balance every minutes and claim your rewards if you have. Because this bot is working on your browser, it will be stopped if you close this page. You can keep it as one of opened tabs in your browser, if you want it to keep
+              working on.
+            </p>
+            <p>I wish this bot help you to enjoy your steemit life more.</p>
+          </div>
+          <div class="panel-footer">Developed by <a href="https://steemit.com/@soon8013" target="_blank">@soon8013</a></div>
+        </div>
+      </div>
+      <div class="col-sm-12 col-md-6">
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Work History <small>(last 1000 logs only)</small></h3>
+          </div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="col-xs-12" id="log">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <script src="//cdn.steemjs.com/lib/latest/steem.min.js"></script>
+  <script>
+    (function work() {
+      var account = $('#account').val().trim();
+      var postingKey = $('#posting-key').val().trim();
+
+      if (account == '' || postingKey == '') {
+        return setTimeout(work, 1000);
+      }
+
+      return steem.api.getAccounts([account]).then(res => {
+        if (!res.length) {
+          return Promise.reject('invalid account: ' + account);
+        }
+
+        var accountInfo = res[0];
+
+        var $newLog = $('<div class="alert alert-info" role="alert"><small>[' + new Date().toString() + '] <strong>' + accountInfo.reward_sbd_balance + '</strong> / <strong>' + accountInfo.reward_vesting_steem + '</strong> / <strong>' +
+          accountInfo.reward_vesting_balance + '</strong></small></div>');
+        $('#log').prepend($newLog);
+
+        return accountInfo.reward_vesting_balance;
+      }).then(reward => {
+        if (parseFloat(reward) > 0) {
+          return new Promise((resolve, reject) => {
+            steem.broadcast.claimRewardBalance(postingKey, account, '0.000 STEEM', '0.000 SBD', reward, (err, res) => {
+              if (err) {
+                reject(err);
+              } else {
+                var $newLog = $('<div class="alert alert-success" role="alert"><small><strong>Claim Succeeded.</strong></small></div>')
+                $('#log').prepend($newLog);
+                resolve();
+              }
+            });
+          });
+        }
+      }).catch(err => {
+        var $newLog = $('<div class="alert alert-danger" role="alert"><small>[' + new Date().toString() + '] <strong>' + err.toString() + '</strong></small></div>');
+        $('#log').prepend($newLog);
+      }).finally(() => {
+        while ($('#log').children().length > 1000) {
+          $('#log').children().eq($('#log').children().length - 1).remove();
+        }
+        setTimeout(work, 1 * 60 * 1000);
+      });
+    })();
+
+  </script>
+</body>
+
+</html>
