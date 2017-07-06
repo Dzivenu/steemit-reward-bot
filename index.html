@@ -93,12 +93,17 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
   <script src="//cdn.steemjs.com/lib/latest/steem.min.js"></script>
   <script>
+    var timer;
+
     (function work() {
       var account = $('#account').val().trim();
       var postingKey = $('#posting-key').val().trim();
 
       if (account == '' || postingKey == '') {
-        return setTimeout(work, 1000);
+        if (!timer) {
+          setTimeout(work, 1000);
+        }
+        return;
       }
 
       return steem.api.getAccounts([account]).then(res => {
@@ -132,9 +137,11 @@
         $('#log').prepend($newLog);
       }).finally(() => {
         while ($('#log').children().length > 1000) {
-          $('#log').children().eq($('#log').children().length - 1).remove();
+          $('#log').children().eq(-1).remove();
         }
-        setTimeout(work, 1 * 60 * 1000);
+        if (!timer) {
+          timer = setInterval(work, 1 * 60 * 1000);
+        }
       });
     })();
 
